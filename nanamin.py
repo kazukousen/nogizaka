@@ -17,6 +17,24 @@ class Nanamin():
             os.environ.get('MYSQL_PASSWD'),
             os.environ.get('MYSQL_DB'))
 
+    def create_tables(self):
+        tables = ['detail_urls', 'detail_contents', 'images']
+        cur = self.con.cursor()
+        try:
+            cur.execute('create table {}(id int primary key not null, url text)'.format(tables[0]))
+            self.con.commit()
+            print('created {}, OK.'.format(tables[0]))
+        except:
+            print("error: didn't create {}.".format(tables[0]))
+
+        try:
+            cur.execute('create table {}(id int primary key not null, url text, title text, published datetime, \
+                content text)'.format(tables[1]))
+            self.con.commit()
+            print('created {}, OK.'.format(tables[1]))
+        except:
+            print("error: didn't create {}.".format(tables[1]))
+
     def crawl_urls(self):
         while self.urls:
             url = self.urls.pop()
