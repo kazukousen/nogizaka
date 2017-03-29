@@ -21,19 +21,40 @@ class Nanamin():
         tables = ['detail_urls', 'detail_contents', 'images']
         cur = self.con.cursor()
         try:
-            cur.execute('create table {}(id int primary key not null, url text)'.format(tables[0]))
+            cur.execute('create table {}(id int auto_increment not null, url text, index(id))'.format(tables[0]))
             self.con.commit()
             print('created {}, OK.'.format(tables[0]))
         except:
             print("error: didn't create {}.".format(tables[0]))
 
         try:
-            cur.execute('create table {}(id int primary key not null, url text, title text, published datetime, \
-                content text)'.format(tables[1]))
+            cur.execute('create table {}(id int auto_increment not null, url text, title text, published datetime, \
+                content text, index(id))'.format(tables[1]))
             self.con.commit()
             print('created {}, OK.'.format(tables[1]))
         except:
             print("error: didn't create {}.".format(tables[1]))
+
+    def add_detail_contents(self, detail_url):
+        response = requests.get(detail_url, headers=self.headers)
+        soup = BeautifulSoup(response.text, 'lxml')
+        title = soup.find(class_='entrytitle').text
+        published = detail_url[-8:]
+        content = soup.find(class_='entrybody').text
+        cur = self.con.cursor()
+        try:
+            cur.execute("INSERT INTO detail_contents (url, title, published, content)\
+                VALUES ('{url}', '{title}', '{published}', '{content}')".format(
+                    url=detail_url, title=title, published=published, content=content))
+            self.con.commit()
+            print('inserted {}, OK.'.format(published))
+        except:
+            print("Error: didn't insert {}.".format(published))
+
+    def add_all_details(self):
+        for detail_url in self.detail_urls:
+            self.add_detail_contents(detail_url)
+        print('Done all.')
 
     def crawl_urls(self):
         while self.urls:
@@ -70,6 +91,12 @@ class Nanamin():
         rows = cur.fetchall()
         for row in rows:
             print(row)
+
+    def detail_array_from_dbs(self):
+        cur = self.con.cursor()
+        cur.execute('select * from detail_urls')
+        rows = cur.fetchall()
+        self.detail_urls = [row[1] for row in rows]
 
 def main():
     nanamin = Nanamin()
