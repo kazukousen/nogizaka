@@ -1,5 +1,8 @@
 import requests
 from bs4 import BeautifulSoup
+import MySQLdb
+import os
+from dotenv import load_dotenv
 
 class Nanamin():
 
@@ -8,6 +11,11 @@ class Nanamin():
         self.urls = [self.base_url]
         self.detail_urls = []
         self.headers = {'User-Agent': 'sample Vivaldi'}
+        load_dotenv(os.path.join(os.curdir, '.env'))
+        self.con = MySQLdb.connect(os.environ.get('MYSQL_HOST'),
+            os.environ.get('MYSQL_USER'),
+            os.environ.get('MYSQL_PASSWD'),
+            os.environ.get('MYSQL_DB'))
 
     def crawl_urls(self):
         while self.urls:
@@ -31,6 +39,19 @@ class Nanamin():
     def output_detail_urls(self):
         for detail_url in self.detail_urls:
             print(detail_url)
+
+    def insert_detail_urls(self):
+        cur = self.con.cursor()
+        for detail_url in self.detail_urls:
+            cur.execute("INSERT INTO detail_urls(url) VALUES('{}')".format(detail_url))
+        self.con.commit()
+
+    def show_detail_dbs(self):
+        cur = self.con.cursor()
+        cur.execute('select * from detail_urls')
+        rows = cur.fetchall()
+        for row in rows:
+            print(row)
 
 def main():
     nanamin = Nanamin()
