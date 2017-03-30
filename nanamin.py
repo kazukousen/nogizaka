@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import MySQLdb
 import os
+import uuid
 from dotenv import load_dotenv
 
 class Nanamin():
@@ -38,6 +39,16 @@ class Nanamin():
         except:
             print("error: didn't create {}.".format(tables[1]))
 
+        try:
+            cur.execute('create table {}(id int auto_increment not null, url text, file_name text, \
+                detail_id int not null, index(id), \
+                foreign key (detail_id) references detail_contents (id))'.format(tables[2]))
+            self.con.commit()
+            print('created {}, OK.'.format(tables[2]))
+        except:
+            print("error: didn't create {}.".format(tables[2]))
+
+
     def add_detail_contents(self, detail_url):
         response = requests.get(detail_url, headers=self.headers)
         soup = BeautifulSoup(response.text, 'lxml')
@@ -52,6 +63,7 @@ class Nanamin():
         """[1:-1]
         try:
             cur.execute(query, (detail_url, title, published, content, author))
+            detail_id = cur.lastrowid
             self.con.commit()
             print('inserted {}, OK.'.format(published))
         except MySQLdb.Error as e:
@@ -59,6 +71,25 @@ class Nanamin():
                 print("Error [{}]: didn't insert {}. {}".format(e.args[0], published, e.args[1]))
             except IndexError:
                 print("Error : didn't insert {}. {}".format(published, str(e)))
+        img_tags = content.find_all('img')
+        for img_tag in img_tags:
+            img_url = img_tag['src']
+            response = requests.get(img_url, headers=self.headers)
+            file_name = uuid.uuid4().hex
+            with open(os.path.join(os.curdir, os.path.join('img', '{}.jpg'.format(file_name))), 'wb') as f:
+                f.write(response.content)
+            try:
+                query = 'INSERT INTO images (url, file_name, detail_id) \
+                    VALUES (%s, %s, %s)'
+                cur.execute(query, (img_url, file_name, detail_id))
+                self.con.commit()
+                print('inserted image {}, OK'.format(file_name))
+            except MySQLdb.Error as e:
+                try:
+                    print("Error [{}]: didn't insert {}. {}".format(e.args[0], detail_id, e.args[1]))
+                except IndexError:
+                    print("Error : didn't insert {}. {}".format(detail_id, str(e)))
+
 
     def add_all_details(self):
         for detail_url in self.detail_urls:
