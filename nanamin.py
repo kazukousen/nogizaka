@@ -17,6 +17,9 @@ class Nanamin():
             os.environ.get('MYSQL_PASSWD'),
             os.environ.get('MYSQL_DB'))
 
+    def close(self):
+        self.con.close()
+
     def create_tables(self):
         tables = ['detail_urls', 'detail_contents', 'images']
         cur = self.con.cursor()
@@ -29,7 +32,7 @@ class Nanamin():
 
         try:
             cur.execute('create table {}(id int auto_increment not null, url text, title text, published datetime, \
-                content text, index(id))'.format(tables[1]))
+                content text, author text, index(id))'.format(tables[1]))
             self.con.commit()
             print('created {}, OK.'.format(tables[1]))
         except:
@@ -40,16 +43,22 @@ class Nanamin():
         soup = BeautifulSoup(response.text, 'lxml')
         title = soup.find(class_='entrytitle').text
         published = detail_url[-8:]
-        content = soup.find(class_='entrybody').text
+        content = soup.find(class_='entrybody')
+        author = soup.find(class_='author').text
         cur = self.con.cursor()
+        query = """
+        INSERT INTO detail_contents (url, title, published, content, author)
+        VALUES (%s, %s, %s, %s, %s)
+        """[1:-1]
         try:
-            cur.execute("INSERT INTO detail_contents (url, title, published, content)\
-                VALUES ('{url}', '{title}', '{published}', '{content}')".format(
-                    url=detail_url, title=title, published=published, content=content))
+            cur.execute(query, (detail_url, title, published, content, author))
             self.con.commit()
             print('inserted {}, OK.'.format(published))
-        except:
-            print("Error: didn't insert {}.".format(published))
+        except MySQLdb.Error as e:
+            try:
+                print("Error [{}]: didn't insert {}. {}".format(e.args[0], published, e.args[1]))
+            except IndexError:
+                print("Error : didn't insert {}. {}".format(published, str(e)))
 
     def add_all_details(self):
         for detail_url in self.detail_urls:
