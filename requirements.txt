@@ -1,0 +1,16 @@
+tqdm
+requests
+requests_oauthlib
+BeautifulSoup4
+lxml
+Flask
+jupyter
+pylint
+python-dotenv
+google-cloud-datastore
+google-cloud-storage
+google-cloud-logging
+gunicorn
+six
+psq
+ipython

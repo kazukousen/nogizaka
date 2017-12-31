@@ -1,8 +1,8 @@
-import requests
-from bs4 import BeautifulSoup
-import MySQLdb
 import os
 import uuid
+import json
+import requests
+from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
 class Blog():
@@ -17,69 +17,21 @@ class Blog():
         self.detail_urls = []
         self.headers = {'User-Agent': 'sample Vivaldi'}
         load_dotenv(os.path.join(os.curdir, '.env'))
-        self.con = MySQLdb.connect(
-            host=os.environ.get('MYSQL_HOST')
-            , user=os.environ.get('MYSQL_USER')
-            , passwd=os.environ.get('MYSQL_PASSWD')
-            , db=os.environ.get('MYSQL_DB')
-            , charset=os.environ.get('MYSQL_CHARSET'))
-
-    def close(self):
-        self.con.close()
-
-    def create_tables(self):
-        tables = ['detail_urls', 'detail_contents', 'images']
-        cur = self.con.cursor()
-        try:
-            cur.execute('create table {}(id int auto_increment not null, url text, author text, index(id))'.format(tables[0]))
-            self.con.commit()
-            print('created {}, OK.'.format(tables[0]))
-        except:
-            print("error: didn't create {}.".format(tables[0]))
-
-        try:
-            cur.execute('create table {}(id int auto_increment not null, url text, title text, published datetime, \
-                content text, author text, index(id))'.format(tables[1]))
-            self.con.commit()
-            print('created {}, OK.'.format(tables[1]))
-        except:
-            print("error: didn't create {}.".format(tables[1]))
-
-        try:
-            cur.execute('create table {}(id int auto_increment not null, url text, file_path text, \
-                detail_id int not null, index(id), \
-                foreign key (detail_id) references detail_contents (id))'.format(tables[2]))
-            self.con.commit()
-            print('created {}, OK.'.format(tables[2]))
-        except:
-            print("error: didn't create {}.".format(tables[2]))
-
 
     def add_detail_contents(self, detail_url):
         response = requests.get(detail_url, headers=self.headers)
         soup = BeautifulSoup(response.text, 'lxml')
-        title = soup.find(class_='entrytitle').text
-        published = detail_url[-8:]
+        data = dict()
+        data['url'] = detail_url
+        data['title'] = soup.find(class_='entrytitle').text
+        data['published'] = detail_url[-8:]
         content = soup.find(class_='entrybody')
-        author = soup.find(class_='author').text
-        cur = self.con.cursor()
-        query = """
-        INSERT INTO detail_contents (url, title, published, content, author)
-        VALUES (%s, %s, %s, %s, %s)
-        """[1:-1]
-        try:
-            cur.execute(query, (detail_url, title, published, content, author))
-            detail_id = cur.lastrowid
-            self.con.commit()
-            print('inserted {}, OK.'.format(published))
-        except MySQLdb.Error as e:
-            try:
-                print("Error [{}]: didn't insert {}. {}".format(e.args[0], published, e.args[1]))
-            except IndexError:
-                print("Error : didn't insert {}. {}".format(published, str(e)))
+        data['content'] = content
+        data['author'] = soup.find(class_='author').text
+
         img_tags = content.find_all('img')
-        for img_tag in img_tags:
-            img_url = img_tag['src']
+        for it in img_tags:
+            img_url = ['src']
             response = requests.get(img_url, headers=self.headers)
             file_name = uuid.uuid4().hex
             file_path = self.member + '.' + file_name
