@@ -2,6 +2,8 @@ import os
 from dotenv import load_dotenv
 load_dotenv(os.path.join(os.curdir, '.env'))
 
+JSON_AS_ASCII = False
+
 SECRET_KEY = 'secret'
 
 DATA_BACKEND = os.environ.get('DATA_BACKEND')

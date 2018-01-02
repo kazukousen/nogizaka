@@ -2,7 +2,7 @@ import json
 import logging
 import os
 
-from flask import current_app, Flask, redirect, request, session, url_for
+from flask import current_app, Flask, redirect, request, session, url_for, jsonify, Response
 
 from dotenv import load_dotenv
 
@@ -29,19 +29,18 @@ def create_app(config, debug=False, testing=False, config_overrides=None):
     from .crud import crud
     app.register_blueprint(crud, url_prefix='/books')
 
-    # Add a default root route.
     @app.route("/")
     def index():
         return redirect(url_for('crud.list'))
 
-    # Add an error handler that reports exceptions to Stackdriver Error
-    # Reporting. Note that this error handler is only used when debug
-    # is False
-    @app.errorhandler(500)
-    def server_error(e):
-        return """
-        An internal error occurred.
-        """, 500
+    @app.errorhandler(404)
+    def server_error(error=None):
+        message = {
+            'status': 404,
+            'message': 'Not Found: ' + request.url,
+        }
+        json = jsonify(message)
+        return Response(json, status=404, mimetype='application/json')
 
     return app
 

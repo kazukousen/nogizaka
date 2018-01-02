@@ -121,8 +121,7 @@ class Blog(object):
         """
 
         if self.replace is False:
-            exist = storage.is_exists_file(dst_filename)
-            if exist:
+            if storage.is_exists_file(dst_filename):
                 return
 
         res = requests.get(url, headers=self.headers)

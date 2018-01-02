@@ -23,8 +23,19 @@ $ pip install -r requirements.txt
 - Flask
 
 ## MiddleWare
+- Cloud Datastore
 - Cloud Storage
 - Cloud Pub/Sub
+
+### Cloud Datastore
+
+Kind: `Nogizaka`
+
+column | desc
+--- | ---
+id | キー
+value | `nanase.nishino`
+name | `西野七瀬`
 
 ### Cloud Storage
 GCSにスクレイピングしたデータを入れる  
