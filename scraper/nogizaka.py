@@ -2,6 +2,7 @@ import json
 
 import requests
 from bs4 import BeautifulSoup
+from google.cloud import language
 
 from scraper import storage
 
@@ -111,18 +112,23 @@ class Blog(object):
 
         detail_urls = storage.read_lines(self.detail_list_url)
         for detail_url in detail_urls:
-            file_name = 'member/' + self.member + '/post/' + detail_url.rsplit('/', 1)[1]
-            self.upload_post_detail(detail_url, file_name)
+            dir_name = 'member/' + self.member + '/post/' + detail_url.rsplit('?d=', 1)[1] + '/'
+            self.upload_post_detail(detail_url, dir_name)
 
 
-    def upload_post_detail(self, url, dst_filename):
+    def upload_post_detail(self, url, dir_name):
         """
         author, title, contentをJson形式でストレージに格納する
         """
 
+        dst_meta_file = dir_name + 'meta'
+        dst_raw_file = dir_name + 'raw'
+
+        """
         if self.replace is False:
-            if storage.is_exists_file(dst_filename):
+            if storage.is_exists_file(dst_meta_file):
                 return
+        """
 
         res = requests.get(url, headers=self.headers)
         if res.status_code != 200:
@@ -139,9 +145,16 @@ class Blog(object):
             'content': content.prettify(),
         }, ensure_ascii=False)
 
+
+        storage.upload_file(
+            content.text.replace('\xa0', ''),
+            dst_raw_file,
+            'text/plain; charset=utf8',
+        )
+
         return storage.upload_file(
             output,
-            dst_filename,
+            dst_meta_file,
             'application/json',
         )
 
@@ -181,3 +194,30 @@ class Blog(object):
         """
         raw = '\n'.join(self.detail_urls)
         return storage.upload_file(raw, dst_filename, 'text/plain')
+
+
+class Tokenizer(object):
+
+
+    def __init__(self):
+        self.client = language.LanguageServiceClient()
+
+
+    def run(self, path):
+        raw = storage.download_string(path)
+        doc = language.types.Document(content=raw, type=language.enums.Document.Type.PLAIN_TEXT)
+        tokens = self.client.analyze_syntax(doc).tokens
+        contents = [token.text.content for token in tokens]
+        # generate path
+        output_path = path.rsplit('/', 1)[0] + '/' + 'tokenized'
+        return storage.upload_file(' '.join(contents), output_path, 'text/plain; charset=utf8')
+
+
+    def run_all(self, path):
+        raw = storage.download_string(path)
+        doc = language.types.Document(content=raw, type=language.enums.Document.Type.PLAIN_TEXT)
+        tokens = self.client.analyze_syntax(doc).tokens
+        contents = [token.text.content for token in tokens]
+        # generate path
+        output_path = path.rsplit('/', 1)[0] + '/' + 'tokenized'
+        return storage.upload_file(' '.join(contents), output_path, 'text/plain; charset=utf8')

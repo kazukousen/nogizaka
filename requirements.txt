@@ -10,6 +10,7 @@ python-dotenv
 google-cloud-datastore
 google-cloud-storage
 google-cloud-logging
+google-cloud-language
 gunicorn
 six
 psq

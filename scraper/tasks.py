@@ -25,3 +25,6 @@ def get_scraper_queue():
 def process_scraping_by_member(member):
     scraper = Blog(member=member)
     scraper.run_all_by_member()
+
+def process_get_tokens(path):
+    pass
